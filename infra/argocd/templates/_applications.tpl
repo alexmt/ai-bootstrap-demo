@@ -2,7 +2,8 @@
 #
 # cainjector writes caBundle into webhook configs after sync, so Argo CD must
 # ignore that field or selfHeal would keep wiping it.
-# Retries cover Kargo syncing before cert-manager CRDs exist.
+# Retries cover apps syncing before CRDs they use exist (cert-manager for
+# Kargo, ServiceMonitor for Rollouts).
 {{- define "argocd.appSync" }}
 ignoreDifferences:
   - group: admissionregistration.k8s.io
@@ -101,5 +102,24 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
+  {{- include "argocd.appSync" . | nindent 2 }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argo-rollouts
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://argoproj.github.io/argo-helm
+    chart: argo-rollouts
+    targetRevision: {{ .Values.rollouts.version }}
+    helm:
+      valuesObject:
+        {{- toYaml .Values.rollouts.values | nindent 8 }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argo-rollouts
   {{- include "argocd.appSync" . | nindent 2 }}
 {{- end }}

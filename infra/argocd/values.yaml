@@ -19,6 +19,14 @@ argo-cd:
   server:
     metrics:
       enabled: true
+    # Rollout tab in the resource view for argoproj.io/Rollout.
+    extensions:
+      enabled: true
+      extensionList:
+        - name: rollout-extension
+          env:
+            - name: EXTENSION_URL
+              value: https://github.com/argoproj-labs/rollout-extension/releases/download/v0.4.1/extension.tar
   repoServer:
     metrics:
       enabled: true
@@ -57,6 +65,18 @@ kargo:
     externalWebhooksServer:
       tls:
         enabled: false
+
+rollouts:
+  version: 2.43.8
+  values:
+    dashboard:
+      enabled: true
+    controller:
+      replicas: 1
+      metrics:
+        enabled: true
+        serviceMonitor:
+          enabled: true
 
 # kube-prometheus-stack: Prometheus, Alertmanager and Grafana.
 monitoring:
