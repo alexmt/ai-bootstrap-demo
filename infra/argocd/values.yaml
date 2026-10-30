@@ -45,11 +45,11 @@ certManager:
 
 kargo:
   version: 1.12.5
-  # Demo credentials only: admin password is "admin", signing key is checked in.
+  # Demo credentials only: admin password is "password", signing key is checked in.
   values:
     api:
       adminAccount:
-        passwordHash: $2y$10$ib1rtDTKiuIHiSqOy.ESBevBhG.iBQ/.zLlx6DzLz0NKonAihs5q2 # "admin"
+        passwordHash: $2y$10$Bbi16KBN354cY1TD1OBYX.9qkzwzl1kKVMA3VEEKev1/tRBvLjHyq # "password"
         tokenSigningKey: kargo-demo-signing-key
       # Reached over `kubectl port-forward` on plain HTTP.
       tls:
