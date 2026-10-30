@@ -11,6 +11,20 @@ argo-cd:
     enabled: false
   notifications:
     enabled: false
+  # Metrics Services; ServiceMonitors live in the monitoring app since their
+  # CRDs don't exist yet when this chart is applied.
+  controller:
+    metrics:
+      enabled: true
+  server:
+    metrics:
+      enabled: true
+  repoServer:
+    metrics:
+      enabled: true
+  applicationSet:
+    metrics:
+      enabled: true
   configs:
     cm:
       # Web terminal in the UI (also adds pods/exec to the server ClusterRole).
@@ -39,6 +53,59 @@ kargo:
     externalWebhooksServer:
       tls:
         enabled: false
+
+# kube-prometheus-stack: Prometheus, Alertmanager and Grafana.
+monitoring:
+  version: 92.16.0
+  values:
+    fullnameOverride: monitoring
+    # kind runs these on the node's loopback, so they can't be scraped.
+    kubeEtcd:
+      enabled: false
+    kubeControllerManager:
+      enabled: false
+    kubeScheduler:
+      enabled: false
+    kubeProxy:
+      enabled: false
+    defaultRules:
+      rules:
+        etcd: false
+        kubeControllerManager: false
+        kubeSchedulerAlerting: false
+        kubeProxy: false
+    prometheusOperator:
+      admissionWebhooks:
+        enabled: false
+      tls:
+        enabled: false
+    prometheus:
+      prometheusSpec:
+        # Pick up every ServiceMonitor/PodMonitor/PrometheusRule in the cluster,
+        # not just ones labelled with this release.
+        serviceMonitorSelectorNilUsesHelmValues: false
+        podMonitorSelectorNilUsesHelmValues: false
+        ruleSelectorNilUsesHelmValues: false
+        probeSelectorNilUsesHelmValues: false
+        scrapeConfigSelectorNilUsesHelmValues: false
+    grafana:
+      fullnameOverride: grafana
+      adminPassword: admin
+    extraManifests:
+      - apiVersion: monitoring.coreos.com/v1
+        kind: ServiceMonitor
+        metadata:
+          name: argocd
+        spec:
+          namespaceSelector:
+            matchNames: [argocd]
+          selector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: [argocd-metrics, argocd-server-metrics, argocd-repo-server-metrics]
+          endpoints:
+            - port: http-metrics
 
 bootstrap:
   image: registry.k8s.io/kubectl:v1.36.6

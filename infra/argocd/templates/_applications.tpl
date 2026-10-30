@@ -1,9 +1,9 @@
-# cert-manager is required by Kargo: its webhook certs come from a cert-manager Issuer.
-# Kargo fails to sync until cert-manager CRDs exist; the retry policy covers that.
+# Shared by all Applications.
 #
 # cainjector writes caBundle into webhook configs after sync, so Argo CD must
 # ignore that field or selfHeal would keep wiping it.
-{{- define "argocd.webhookIgnoreDifferences" }}
+# Retries cover Kargo syncing before cert-manager CRDs exist.
+{{- define "argocd.appSync" }}
 ignoreDifferences:
   - group: admissionregistration.k8s.io
     kind: ValidatingWebhookConfiguration
@@ -62,8 +62,9 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: cert-manager
-  {{- include "argocd.webhookIgnoreDifferences" . | nindent 2 }}
+  {{- include "argocd.appSync" . | nindent 2 }}
 ---
+# Kargo needs cert-manager: its webhook certs come from a cert-manager Issuer.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -81,5 +82,24 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: kargo
-  {{- include "argocd.webhookIgnoreDifferences" . | nindent 2 }}
+  {{- include "argocd.appSync" . | nindent 2 }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: {{ .Values.monitoring.version }}
+    helm:
+      valuesObject:
+        {{- toYaml .Values.monitoring.values | nindent 8 }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  {{- include "argocd.appSync" . | nindent 2 }}
 {{- end }}
