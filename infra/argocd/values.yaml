@@ -1,0 +1,44 @@
+# Upstream argo-cd chart values. Defaults are non-HA.
+argo-cd:
+  # `helm template` has no release namespace, so pin it explicitly.
+  namespaceOverride: argocd
+  # Resource names match the upstream install.yaml (argocd-server, ...).
+  fullnameOverride: argocd
+  # CRDs are installed by the bootstrap Job (see templates/bootstrap.yaml).
+  crds:
+    install: false
+  dex:
+    enabled: false
+  notifications:
+    enabled: false
+  configs:
+    cm:
+      # Web terminal in the UI (also adds pods/exec to the server ClusterRole).
+      exec.enabled: true
+    repositories:
+      kargo-charts:
+        name: kargo-charts
+        type: helm
+        url: ghcr.io/akuity/kargo-charts
+        enableOCI: "true"
+
+certManager:
+  version: v1.21.3
+
+kargo:
+  version: 1.12.5
+  # Demo credentials only: admin password is "admin", signing key is checked in.
+  values:
+    api:
+      adminAccount:
+        passwordHash: $2y$10$ib1rtDTKiuIHiSqOy.ESBevBhG.iBQ/.zLlx6DzLz0NKonAihs5q2 # "admin"
+        tokenSigningKey: kargo-demo-signing-key
+      # Reached over `kubectl port-forward` on plain HTTP.
+      tls:
+        enabled: false
+    externalWebhooksServer:
+      tls:
+        enabled: false
+
+bootstrap:
+  image: registry.k8s.io/kubectl:v1.36.6

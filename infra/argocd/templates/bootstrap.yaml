@@ -1,0 +1,86 @@
+# Plain `kubectl apply` can't create Argo CD Applications in the same run as
+# their CRDs, and the ApplicationSet CRD is too large for client-side apply.
+# This Job server-side applies the CRDs, waits for them, then applies the Applications.
+{{- $argocdVersion := (index .Subcharts "argo-cd").Chart.AppVersion }}
+{{- $crdBase := printf "https://raw.githubusercontent.com/argoproj/argo-cd/%s/manifests/crds" $argocdVersion }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argocd-bootstrap
+  namespace: argocd
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: argocd-bootstrap
+rules:
+  - apiGroups: [apiextensions.k8s.io]
+    resources: [customresourcedefinitions]
+    verbs: [get, list, watch, create, patch]
+  - apiGroups: [argoproj.io]
+    resources: [applications, appprojects]
+    verbs: [get, list, create, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: argocd-bootstrap
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: argocd-bootstrap
+subjects:
+  - kind: ServiceAccount
+    name: argocd-bootstrap
+    namespace: argocd
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-bootstrap-apps
+  namespace: argocd
+data:
+  applications.yaml: |
+    {{- include "argocd.applications" . | nindent 4 }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: argocd-bootstrap
+  namespace: argocd
+spec:
+  backoffLimit: 10
+  template:
+    spec:
+      serviceAccountName: argocd-bootstrap
+      restartPolicy: OnFailure
+      initContainers:
+        - name: crds
+          image: {{ .Values.bootstrap.image }}
+          args:
+            - apply
+            - --server-side
+            - --force-conflicts
+            - -f={{ $crdBase }}/application-crd.yaml
+            - -f={{ $crdBase }}/appproject-crd.yaml
+            - -f={{ $crdBase }}/applicationset-crd.yaml
+        - name: wait
+          image: {{ .Values.bootstrap.image }}
+          args:
+            - wait
+            - --for=condition=Established
+            - --timeout=120s
+            - crd/applications.argoproj.io
+            - crd/appprojects.argoproj.io
+            - crd/applicationsets.argoproj.io
+      containers:
+        - name: apps
+          image: {{ .Values.bootstrap.image }}
+          args: [apply, --server-side, -f=/apps/applications.yaml]
+          volumeMounts:
+            - name: apps
+              mountPath: /apps
+      volumes:
+        - name: apps
+          configMap:
+            name: argocd-bootstrap-apps
