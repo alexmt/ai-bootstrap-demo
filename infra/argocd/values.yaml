@@ -29,6 +29,10 @@ argo-cd:
     cm:
       # Web terminal in the UI (also adds pods/exec to the server ClusterRole).
       exec.enabled: true
+      # No login: anonymous users get admin (demo only).
+      users.anonymous.enabled: true
+    rbac:
+      policy.default: role:admin
     repositories:
       kargo-charts:
         name: kargo-charts
