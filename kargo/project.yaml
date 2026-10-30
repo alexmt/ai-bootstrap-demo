@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rollouts-demo
+  labels:
+    kargo.akuity.io/project: "true"
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Project
+metadata:
+  name: rollouts-demo
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: ProjectConfig
+metadata:
+  name: rollouts-demo
+  namespace: rollouts-demo
+spec:
+  promotionPolicies:
+    - stage: qa
+      autoPromotionEnabled: true
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: rollouts-demo
+  namespace: rollouts-demo
+spec:
+  interval: 5m
+  freightCreationPolicy: Manual
+  subscriptions:
+    - image:
+        repoURL: argoproj/rollouts-demo
+        imageSelectionStrategy: Lexical
+        allowTagsRegexes: ["^(blue|green|yellow|orange|purple|red)$"]
+---
+# Integration test: waits until /color returns the promoted tag 10 times in a
+# row, i.e. the new version serves all traffic.
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: smoke-test
+  namespace: rollouts-demo
+spec:
+  args:
+    - name: url
+    - name: color
+  metrics:
+    - name: smoke-test
+      provider:
+        job:
+          spec:
+            backoffLimit: 0
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: curl
+                    image: curlimages/curl:8.17.0
+                    command: [sh, -c]
+                    args:
+                      - |
+                        streak=0
+                        for i in $(seq 1 300); do
+                          if [ "$(curl -sf {{args.url}}/color)" = '"{{args.color}}"' ]; then
+                            streak=$((streak+1))
+                            [ $streak -ge 10 ] && exit 0
+                          else
+                            streak=0
+                          fi
+                          sleep 1
+                        done
+                        exit 1

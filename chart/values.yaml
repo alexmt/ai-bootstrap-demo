@@ -1,0 +1,9 @@
+replicaCount: 1
+
+image:
+  repository: argoproj/rollouts-demo
+  # Pre-Kargo default; Kargo sets image.tag on each Application.
+  tag: blue
+
+service:
+  port: 80

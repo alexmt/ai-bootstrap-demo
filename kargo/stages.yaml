@@ -1,0 +1,135 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: qa
+  namespace: rollouts-demo
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: rollouts-demo
+      sources:
+        direct: true
+  promotionTemplate:
+    spec:
+      steps:
+        - uses: argocd-update
+          config:
+            apps:
+              - name: rollouts-demo-qa
+                sources:
+                  - repoURL: https://github.com/alexmt/ai-bootstrap-demo.git
+                    helm:
+                      images:
+                        - key: image.tag
+                          value: ${{ imageFrom("argoproj/rollouts-demo").Tag }}
+  verification:
+    analysisTemplates:
+      - name: smoke-test
+    args:
+      - name: url
+        value: http://rollouts-demo.rollouts-demo-qa.svc
+      - name: color
+        value: ${{ imageFrom("argoproj/rollouts-demo").Tag }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: rc
+  namespace: rollouts-demo
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: rollouts-demo
+      sources:
+        stages: [qa]
+  promotionTemplate:
+    spec:
+      steps:
+        - uses: argocd-update
+          config:
+            apps:
+              - name: rollouts-demo-rc
+                sources:
+                  - repoURL: https://github.com/alexmt/ai-bootstrap-demo.git
+                    helm:
+                      images:
+                        - key: image.tag
+                          value: ${{ imageFrom("argoproj/rollouts-demo").Tag }}
+  verification:
+    analysisTemplates:
+      - name: smoke-test
+    args:
+      - name: url
+        value: http://rollouts-demo.rollouts-demo-rc.svc
+      - name: color
+        value: ${{ imageFrom("argoproj/rollouts-demo").Tag }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: prod-us-west1
+  namespace: rollouts-demo
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: rollouts-demo
+      sources:
+        stages: [rc]
+  promotionTemplate:
+    spec:
+      steps:
+        - uses: argocd-update
+          config:
+            apps:
+              - name: rollouts-demo-prod-us-west1
+                sources:
+                  - repoURL: https://github.com/alexmt/ai-bootstrap-demo.git
+                    helm:
+                      images:
+                        - key: image.tag
+                          value: ${{ imageFrom("argoproj/rollouts-demo").Tag }}
+  verification:
+    analysisTemplates:
+      - name: smoke-test
+    args:
+      - name: url
+        value: http://rollouts-demo.rollouts-demo-prod-us-west1.svc
+      - name: color
+        value: ${{ imageFrom("argoproj/rollouts-demo").Tag }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: prod-us-east1
+  namespace: rollouts-demo
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: rollouts-demo
+      sources:
+        stages: [rc]
+  promotionTemplate:
+    spec:
+      steps:
+        - uses: argocd-update
+          config:
+            apps:
+              - name: rollouts-demo-prod-us-east1
+                sources:
+                  - repoURL: https://github.com/alexmt/ai-bootstrap-demo.git
+                    helm:
+                      images:
+                        - key: image.tag
+                          value: ${{ imageFrom("argoproj/rollouts-demo").Tag }}
+  verification:
+    analysisTemplates:
+      - name: smoke-test
+    args:
+      - name: url
+        value: http://rollouts-demo.rollouts-demo-prod-us-east1.svc
+      - name: color
+        value: ${{ imageFrom("argoproj/rollouts-demo").Tag }}

@@ -1,0 +1,107 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rollouts-demo-qa
+  namespace: argocd
+  labels:
+    app-deployment: "true"
+  annotations:
+    kargo.akuity.io/authorized-stage: rollouts-demo:qa
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/alexmt/ai-bootstrap-demo.git
+    targetRevision: app-deployment
+    path: chart
+    helm:
+      valueFiles: [values-qa.yaml]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: rollouts-demo-qa
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rollouts-demo-rc
+  namespace: argocd
+  labels:
+    app-deployment: "true"
+  annotations:
+    kargo.akuity.io/authorized-stage: rollouts-demo:rc
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/alexmt/ai-bootstrap-demo.git
+    targetRevision: app-deployment
+    path: chart
+    helm:
+      valueFiles: [values-rc.yaml]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: rollouts-demo-rc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rollouts-demo-prod-us-west1
+  namespace: argocd
+  labels:
+    app-deployment: "true"
+  annotations:
+    kargo.akuity.io/authorized-stage: rollouts-demo:prod-us-west1
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/alexmt/ai-bootstrap-demo.git
+    targetRevision: app-deployment
+    path: chart
+    helm:
+      valueFiles: [values-prod-us-west1.yaml]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: rollouts-demo-prod-us-west1
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rollouts-demo-prod-us-east1
+  namespace: argocd
+  labels:
+    app-deployment: "true"
+  annotations:
+    kargo.akuity.io/authorized-stage: rollouts-demo:prod-us-east1
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/alexmt/ai-bootstrap-demo.git
+    targetRevision: app-deployment
+    path: chart
+    helm:
+      valueFiles: [values-prod-us-east1.yaml]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: rollouts-demo-prod-us-east1
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
