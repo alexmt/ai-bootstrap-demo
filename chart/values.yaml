@@ -7,3 +7,18 @@ image:
 
 service:
   port: 80
+
+# Renders an Argo Rollout instead of a Deployment. Without a traffic router,
+# weights are pod ratios, so replicaCount must fit the steps.
+canary:
+  enabled: false
+  # Timed pauses only: an indefinite pause keeps the Application unhealthy.
+  steps:
+    - setWeight: 20
+    - pause: {duration: 20s}
+    - setWeight: 40
+    - pause: {duration: 20s}
+    - setWeight: 60
+    - pause: {duration: 20s}
+    - setWeight: 80
+    - pause: {duration: 20s}
