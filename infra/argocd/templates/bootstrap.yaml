@@ -1,6 +1,7 @@
 # Plain `kubectl apply` can't create Argo CD Applications in the same run as
 # their CRDs, and the ApplicationSet CRD is too large for client-side apply.
 # This Job server-side applies the CRDs, waits for them, then applies the Applications.
+# Kargo goes last, after Argo Rollouts has created its CRDs.
 {{- $argocdVersion := (index .Subcharts "argo-cd").Chart.AppVersion }}
 {{- $crdBase := printf "https://raw.githubusercontent.com/argoproj/argo-cd/%s/manifests/crds" $argocdVersion }}
 apiVersion: v1
@@ -42,6 +43,8 @@ metadata:
 data:
   applications.yaml: |
     {{- include "argocd.applications" . | nindent 4 }}
+  kargo.yaml: |
+    {{- include "argocd.kargoApplication" . | nindent 4 }}
 ---
 apiVersion: batch/v1
 kind: Job
@@ -73,10 +76,19 @@ spec:
             - crd/applications.argoproj.io
             - crd/appprojects.argoproj.io
             - crd/applicationsets.argoproj.io
-      containers:
         - name: apps
           image: {{ .Values.bootstrap.image }}
           args: [apply, --server-side, -f=/apps/applications.yaml]
+          volumeMounts:
+            - name: apps
+              mountPath: /apps
+        - name: wait-rollouts
+          image: {{ .Values.bootstrap.image }}
+          args: [wait, --for=create, --timeout=600s, crd/analysisruns.argoproj.io]
+      containers:
+        - name: kargo
+          image: {{ .Values.bootstrap.image }}
+          args: [apply, --server-side, -f=/apps/kargo.yaml]
           volumeMounts:
             - name: apps
               mountPath: /apps

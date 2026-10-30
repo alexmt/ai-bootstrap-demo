@@ -1,2 +1,3 @@
 # Vendored Helm dependencies; restore with `helm dependency build infra/argocd`
 infra/*/charts/
+.worktrees/

@@ -65,26 +65,6 @@ spec:
     namespace: cert-manager
   {{- include "argocd.appSync" . | nindent 2 }}
 ---
-# Kargo needs cert-manager: its webhook certs come from a cert-manager Issuer.
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: kargo
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: ghcr.io/akuity/kargo-charts
-    chart: kargo
-    targetRevision: {{ .Values.kargo.version }}
-    helm:
-      valuesObject:
-        {{- toYaml .Values.kargo.values | nindent 8 }}
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: kargo
-  {{- include "argocd.appSync" . | nindent 2 }}
----
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -121,5 +101,29 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: argo-rollouts
+  {{- include "argocd.appSync" . | nindent 2 }}
+{{- end }}
+
+# Applied separately, once Argo Rollouts CRDs exist: Kargo only enables its
+# Rollouts integration (needed for verification) if they're present at startup.
+{{- define "argocd.kargoApplication" }}
+# Kargo needs cert-manager: its webhook certs come from a cert-manager Issuer.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kargo
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: ghcr.io/akuity/kargo-charts
+    chart: kargo
+    targetRevision: {{ .Values.kargo.version }}
+    helm:
+      valuesObject:
+        {{- toYaml .Values.kargo.values | nindent 8 }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kargo
   {{- include "argocd.appSync" . | nindent 2 }}
 {{- end }}
